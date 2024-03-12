@@ -1,0 +1,499 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WebGL 2 Cube Rotation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+    <style>
+      canvas {
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="glCanvas" width="2000" height="700"></canvas>
+
+    <script>
+      // Vertex shader source code
+      const vertexShaderSource = `#version 300 es
+        in vec3 a_position;
+        in vec4 a_color;
+        out vec4 v_color;
+
+        uniform mat4 u_modelViewMatrix;
+
+        void main() {
+            gl_Position = u_modelViewMatrix * vec4(a_position, 1.0);
+            v_color = a_color;
+        }
+    `;
+
+      // Fragment shader source code
+      const fragmentShaderSource = `#version 300 es
+        precision highp float;
+        in vec4 v_color;
+        out vec4 outColor;
+
+        void main() {
+            outColor = v_color;
+        }
+    `;
+
+      // Initialize WebGL 2 context
+      const canvas = document.getElementById("glCanvas");
+      const gl = canvas.getContext("webgl2");
+
+      // Create and compile vertex shader
+      const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vertexShader, vertexShaderSource);
+      gl.compileShader(vertexShader);
+
+      // Create and compile fragment shader
+      const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fragmentShader, fragmentShaderSource);
+      gl.compileShader(fragmentShader);
+
+      // Create shader program and attach shaders
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+      gl.useProgram(program);
+
+      // Set up cube vertices, colors, and indices
+
+      const eVertices = [
+        // Vertical bar
+        1.8, -1.0, 0.2, 2.6, -1.0, 0.2, 2.6, 1.0, 0.2, 1.8, 1.0, 0.2,
+
+        1.8, -1.0, -0.2, 2.6, -1.0, -0.2, 2.6, 1.0, -0.2, 1.8, 1.0, -0.2,
+
+        // Top horizontal bar
+        2.6, 0.6, 0.2, 3.4, 0.6, 0.2, 3.4, 1.0, 0.2, 2.6, 1.0, 0.2,
+
+        2.6, 0.6, -0.2, 3.4, 0.6, -0.2, 3.4, 1.0, -0.2, 2.6, 1.0, -0.2,
+
+        // Middle horizontal bar
+        2.6, 0.0, 0.2, 3.4, 0.0, 0.2, 3.4, 0.4, 0.2, 2.6, 0.4, 0.2,
+
+        2.6, 0.0, -0.2, 3.4, 0.0, -0.2, 3.4, 0.4, -0.2, 2.6, 0.4, -0.2,
+
+        // Bottom horizontal bar
+        2.6, -1.0, 0.2, 3.4, -1.0, 0.2, 3.4, -0.6, 0.2, 2.6, -0.6, 0.2,
+
+        2.6, -1.0, -0.2, 3.4, -1.0, -0.2, 3.4, -0.6, -0.2, 2.6, -0.6, -0.2,
+      ];
+
+      const dColors = [
+        // Front face of vertical bar
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+
+        // Back face of vertical bar
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+
+        // Top face of vertical bar
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+
+        // Bottom face of vertical bar
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+
+        // Right face
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+
+        // Left face
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+        0.0,
+        1.0,
+        0.0,
+        1.0, // Green
+      ];
+      const eIndices = [
+        // Front face
+        0, 1, 2, 0, 2, 3,
+
+        // Back face
+        4, 5, 6, 4, 6, 7,
+
+        // Top face of vertical bar
+        2, 3, 7, 2, 7, 6,
+
+        // Bottom face of vertical bar
+        0, 1, 5, 0, 5, 4,
+
+        // Front face of top horizontal bar
+        8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15,
+
+        // Back face of top horizontal bar
+        16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23,
+
+        // Top face of top horizontal bar
+        10, 11, 15, 10, 15, 14, 18, 19, 23, 18, 23, 22,
+
+        // Bottom face of top horizontal bar
+        8, 9, 13, 8, 13, 12, 16, 17, 21, 16, 21, 20,
+
+        // Front face of middle horizontal bar
+        24, 25, 26, 24, 26, 27, 28, 29, 30, 28, 30, 31,
+
+        // Back face of middle horizontal bar
+        32, 33, 34, 32, 34, 35, 36, 37, 38, 36, 38, 39,
+
+        // Top face of middle horizontal bar
+        26, 27, 31, 26, 31, 30, 34, 35, 39, 34, 39, 38,
+
+        // Bottom face of middle horizontal bar
+        24, 25, 29, 24, 29, 28, 32, 33, 37, 32, 37, 36,
+      ];
+
+      const dVertices = [
+        // Front face
+        -4.0, -1.0, 0.2, -3.2, -1.0, 0.2, -3.2, 1.0, 0.2, -4.0, 1.0, 0.2,
+
+        // Back face
+        -4.0, -1.0, -0.2, -3.2, -1.0, -0.2, -3.2, 1.0, -0.2, -4.0, 1.0, -0.2,
+
+        // Top face
+        -3.2, 1.0, 0.2, -3.2, 1.0, -0.2, -3.2, 0.6, -0.2, -3.2, 0.6, 0.2,
+
+        // Bottom face
+        -4.0, -1.0, 0.2, -4.0, -1.0, -0.2, -3.2, -1.0, -0.2, -3.2, -1.0, 0.2,
+
+        // Right face
+        -3.2, -1.0, 0.2, -3.2, -1.0, -0.2, -3.2, 0.6, -0.2, -3.2, 0.6, 0.2,
+
+        // Left face
+        -4.0, -1.0, 0.2, -4.0, -1.0, -0.2, -4.0, 1.0, -0.2, -4.0, 1.0, 0.2,
+      ];
+
+      const dIndices = [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3, // Front face
+        4,
+        5,
+        6,
+        4,
+        6,
+        7, // Back face
+        8,
+        9,
+        10,
+        8,
+        10,
+        11, // Top face
+        12,
+        13,
+        14,
+        12,
+        14,
+        15, // Bottom face
+        16,
+        17,
+        18,
+        16,
+        18,
+        19, // Right face
+        20,
+        21,
+        22,
+        20,
+        22,
+        23, // Left face
+      ];
+      // Define the colors for each vertex (red)
+
+      const eColors = [
+        0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
+        0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
+        0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
+        1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+        1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
+        0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0,
+        0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
+        1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+        1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
+        0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0,
+        0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+        1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+        1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
+      ];
+      // Create vertex buffer objects (VBOs) and bind data
+      const vertexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(eVertices),
+        gl.STATIC_DRAW,
+      );
+
+      const colorBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(dColors), gl.STATIC_DRAW);
+
+      const indexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      gl.bufferData(
+        gl.ELEMENT_ARRAY_BUFFER,
+        new Uint16Array(eIndices),
+        gl.STATIC_DRAW,
+      );
+
+      const vertexBufferS = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferS);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(dVertices),
+        gl.STATIC_DRAW,
+      );
+
+      const colorBufferS = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, colorBufferS);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(eColors), gl.STATIC_DRAW);
+
+      const indexBufferS = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferS);
+      gl.bufferData(
+        gl.ELEMENT_ARRAY_BUFFER,
+        new Uint16Array(dIndices),
+        gl.STATIC_DRAW,
+      );
+
+      // Get attribute and uniform locations
+      const positionAttributeLocation = gl.getAttribLocation(
+        program,
+        "a_position",
+      );
+      const colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+      const modelViewMatrixUniformLocation = gl.getUniformLocation(
+        program,
+        "u_modelViewMatrix",
+      );
+
+      // Set up rendering loop
+      let leftRotationX = 0;
+      let leftRotationY = 0;
+      let leftRotationZ = 0;
+      let rightRotationX = 0;
+      let rightRotationY = 0;
+      let rightRotationZ = 0;
+
+      function render() {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        const leftScalingMatrix = mat4.create();
+        mat4.scale(leftScalingMatrix, leftScalingMatrix, [0.5, 0.5, 0.5]);
+
+        const rightScalingMatrix = mat4.create();
+        mat4.scale(rightScalingMatrix, rightScalingMatrix, [0.4, 0.4, 0.4]);
+
+        const leftRotationMatrix = mat4.create();
+        mat4.rotateX(leftRotationMatrix, leftRotationMatrix, leftRotationX);
+        mat4.rotateY(leftRotationMatrix, leftRotationMatrix, leftRotationY);
+        mat4.rotateZ(leftRotationMatrix, leftRotationMatrix, leftRotationZ);
+
+        const rightRotationMatrix = mat4.create();
+        mat4.rotateX(rightRotationMatrix, rightRotationMatrix, rightRotationX);
+        mat4.rotateY(rightRotationMatrix, rightRotationMatrix, rightRotationY);
+        mat4.rotateZ(rightRotationMatrix, rightRotationMatrix, rightRotationZ);
+
+        const leftTranslationMatrix = mat4.create();
+        mat4.translate(
+          leftTranslationMatrix,
+          leftTranslationMatrix,
+          [-0.7, 0, 0],
+        );
+
+        const rightTranslationMatrix = mat4.create();
+        mat4.translate(
+          rightTranslationMatrix,
+          rightTranslationMatrix,
+          [0.7, 0, 0],
+        );
+
+        const leftModelViewMatrix = mat4.create();
+        mat4.multiply(
+          leftModelViewMatrix,
+          leftTranslationMatrix,
+          leftScalingMatrix,
+        );
+        mat4.multiply(
+          leftModelViewMatrix,
+          leftModelViewMatrix,
+          leftRotationMatrix,
+        );
+
+        const rightModelViewMatrix = mat4.create();
+        mat4.multiply(
+          rightModelViewMatrix,
+          rightTranslationMatrix,
+          rightScalingMatrix,
+        );
+        mat4.multiply(
+          rightModelViewMatrix,
+          rightModelViewMatrix,
+          rightRotationMatrix,
+        );
+
+        // Update rotation angles and scaling factors
+        leftRotationX += 0.015;
+        leftRotationY += 0.03;
+        leftRotationZ += 0.0;
+        rightRotationX += 0.02;
+        rightRotationY += 0.025;
+        rightRotationZ += 0.0;
+
+        // Render modified shapes
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.vertexAttribPointer(
+          positionAttributeLocation,
+          3,
+          gl.FLOAT,
+          false,
+          0,
+          0,
+        );
+        gl.enableVertexAttribArray(positionAttributeLocation);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.vertexAttribPointer(
+          colorAttributeLocation,
+          4,
+          gl.FLOAT,
+          false,
+          0,
+          0,
+        );
+        gl.enableVertexAttribArray(colorAttributeLocation);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+        gl.uniformMatrix4fv(
+          modelViewMatrixUniformLocation,
+          false,
+          leftModelViewMatrix,
+        );
+        gl.drawElements(gl.TRIANGLES, eIndices.length, gl.UNSIGNED_SHORT, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferS);
+        gl.vertexAttribPointer(
+          positionAttributeLocation,
+          3,
+          gl.FLOAT,
+          false,
+          0,
+          0,
+        );
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBufferS);
+        gl.vertexAttribPointer(
+          colorAttributeLocation,
+          4,
+          gl.FLOAT,
+          false,
+          0,
+          0,
+        );
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferS);
+        gl.uniformMatrix4fv(
+          modelViewMatrixUniformLocation,
+          false,
+          rightModelViewMatrix,
+        );
+        gl.drawElements(gl.TRIANGLES, dIndices.length, gl.UNSIGNED_SHORT, 0);
+
+        requestAnimationFrame(render);
+      }
+
+      // Start rendering
+      render();
+    </script>
+  </body>
+</html>
